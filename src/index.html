@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="height=device-height, initial-scale=1">
+    <link rel="stylesheet" href="styles/style.css">
+  </head>
+  <body style="-webkit-app-region: drag">
+    <div id="top-wrapper">
+      <div id="top-side">
+        <div id="top-bar" style="-webkit-app-region: drag">
+          <div id="file-menu" class="title-menu-item" style="-webkit-app-region: no-drag">Файл</div>
+          <div id="edit-menu" class="title-menu-item" style="-webkit-app-region: no-drag">Правка</div>
+          <div id="view-menu" class="title-menu-item" style="-webkit-app-region: no-drag">Вид</div>
+          <div id="win-menu" class="title-menu-item" style="-webkit-app-region: no-drag">Окно</div>
+          <div id="minus-btn" style="-webkit-app-region: no-drag"></div>
+          <div class="rect-btn-min" id="rect-btn" style="-webkit-app-region: no-drag"></div>
+          <div id="close-btn" style="-webkit-app-region: no-drag"></div>
+        </div>
+        <table id="open-files-bar" style="-webkit-app-region: no-drag">
+          <tr id="open-files-bar-table"></tr>
+        </table>
+        </div>
+      <div id="wrapper">
+        <div id="text-field" style="-webkit-app-region: no-drag">
+          <div id="column">
+            <table id="column-table"></table>
+          </div>
+          <form id="form">
+            <div contenteditable id="field" class="text input-line"></div>
+          </form>
+        </div>
+        <div id="bottom-cap"></div>
+      </div>
+    </div>
+    <script type="module" src="scripts/utils.js"></script>
+    <script type="text/javascript" src="scripts/renderer.js"></script>
+    <!--<script type="text/javascript" src="scripts/handlers.js"></script>-->
+  </body>
+</html>
