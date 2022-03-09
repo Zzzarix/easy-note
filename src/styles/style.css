@@ -291,7 +291,7 @@ p {
     background-color: transparent;
 
     float: right;
-}*/
+}
 
 #menu-resize:hover {
     cursor: e-resize;
@@ -303,7 +303,7 @@ p {
     background-color: #f3f3f3;
 }
 
-/*.fixed-content {
+.fixed-content {
     position: fixed;
 } */
 

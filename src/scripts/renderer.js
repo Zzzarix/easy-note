@@ -4,13 +4,14 @@ const { Menu, dialog } = remote;
 const fs = require('fs');
 const path = require('path');
 
-import { newLine, checkLines, openFile, saveAll } from '../src/scripts/utils.js';
+import { newLine, checkLines, openFile, saveAll, getCaretPos } from '../src/scripts/utils.js';
 
 window.win = remote.getCurrentWindow(); // current electron window
 const Browserwindow = remote.BrowserWindow; // browser window constructor
 
 (  
     window.edit, // editable element
+    window.curline, // editable element selected line
     window.countcolumn, // count column element
     window.form, // editable form element
     window.filesbar, // bar of opened files element
@@ -108,11 +109,40 @@ function preload() {
 window.onload = function () {
     preload();
 
-    window.form.onpaste = function () {
+    window.onclick = function (e) {
+        let x = e.clientY - 70;
+        window.curline = Math.max(Math.min(Math.ceil(x / 19), edit.children.length), 1);
+        
+        console.log(window.curline);
+    }
+
+    window.edit.addEventListener('DOMNodeInserted', function(e) {
+        console.log(e);
+        if (e.target === 'text' && window.edit.children.length === 0) {
+            
+        }
+
+        if (e.target === 'div') e.target.id = `input-line-edit-${window.edit.children.line}`
+    });
+
+    window.edit.addEventListener('DOMNodeRemoved', function(e) {
+        console.log(e);
+    });
+
+    window.form.onpaste = function (e) {
         window.currentfile.value = window.edit.innerText;
         checkLines();
     }
+
     window.form.oninput = function (e) {
+        if (window.edit.children.length === 0) {
+            let cont = document.createElement('div');
+
+            window.edit.appendChild(cont);
+        }
+
+        console.log(getCaretPos())
+
         window.currentfile.value = window.edit.innerText;
         checkLines();
     }
