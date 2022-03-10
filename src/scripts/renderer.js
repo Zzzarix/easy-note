@@ -1,5 +1,5 @@
 const { remote, ipcRenderer } = require('electron');
-const { Menu, dialog } = remote;
+const { Menu, dialog, app } = remote;
 
 const fs = require('fs');
 const path = require('path');
@@ -41,52 +41,55 @@ function preload() {
     window.countcolumn = document.getElementById('column-table');
     window.form = document.getElementById('form');
     
-    document.getElementById('file-menu').addEventListener('click', () => {
-        let menu = Menu.buildFromTemplate([
-            { label: 'Новый файл', click: () => window.win.webContents.send('NEW FILE'), accelerator: 'CmdOrCtrl+N' },
-            { label: 'Новое окно', click: () => window.win.webContents.send('NEW WIN'), accelerator: 'CmdOrCtrl+Shift+N' },
-            { type: 'separator' },
-            { label: 'Открыть файл...', click: () => window.win.webContents.send('OPEN FILE'), accelerator: 'CmdOrCtrl+O' },
-            // { label: 'Открыть папку...', click: () => window.win.webContents.send('OPEN DIR'), accelerator: 'CmdOrCtrl+K' },
-            { type: 'separator' },
-            { label: 'Сохранить', click: () => window.win.webContents.send('SAVE FILE', undefined), accelerator: 'CmdOrCtrl+S' },
-            { label: 'Сохранить как...', click: () => window.win.webContents.send('SAVE FILE AS'), accelerator: 'CmdOrCtrl+Shift+S' },
-        ]);
-
-        menu.popup({ window: window.win, x: 0, y: 31 });
-    });
-    document.getElementById('edit-menu').addEventListener('click', () => {
-        let menu = Menu.buildFromTemplate([
-            { label: 'Отменить', role: 'undo', accelerator: 'CmdOrCtrl+Z' },
-            { label: 'Повторить', role: 'redo', accelerator: 'CmdOrCtrl+Y' },
-            { type: 'separator' },
-            { label: 'Вырезать', role: 'cut', accelerator: 'CmdOrCtrl+X' },
-            { label: 'Копировать', role: 'copy', accelerator: 'CmdOrCtrl+C' },
-            { label: 'Вставить', role: 'paste', accelerator: 'CmdOrCtrl+V' },
-        ]);
-
-        menu.popup({ window: window.win, x: 54, y: 31 });
-    });
-    document.getElementById('view-menu').addEventListener('click', () => {
-        let menu = Menu.buildFromTemplate([
-            { label: 'Приблизить', role: 'zoomIn', accelerator: 'CmdOrCtrl+=' },
-            { label: 'Отдалить', role: 'zoomOut', accelerator: 'CmdOrCtrl+-' },
-        ]);
-
-        menu.popup({ window: window.win, x: 123, y: 31 });
-    });
-    document.getElementById('win-menu').addEventListener('click', () => {
-        let menu = Menu.buildFromTemplate([
-            { label: 'Свернуть', role: 'minimize' },
-            { label: 'Закрыть', role: 'quit' },
-            { label: 'Открыть консоль', click: () => { window.win.webContents.openDevTools({mode: 'undocked'}); } },
-        ]);
-
-        menu.popup({ window: window.win, x: 163, y: 31 });
-    });
-    window.filesbar = document.getElementById('open-files-bar-table');
-
     newLine();
+    
+    app.whenReady().then(() => {
+        document.getElementById('file-menu').addEventListener('click', () => {
+            let menu = Menu.buildFromTemplate([
+                { label: 'Новый файл', click: () => window.win.webContents.send('NEW FILE'), accelerator: 'CommandOrControl+N' },
+                { label: 'Новое окно', click: () => window.win.webContents.send('NEW WIN'), accelerator: 'CommandOrControl+Shift+N' },
+                { type: 'separator' },
+                { label: 'Открыть файл...', click: () => window.win.webContents.send('OPEN FILE'), accelerator: 'CommandOrControl+O' },
+                // { label: 'Открыть папку...', click: () => window.win.webContents.send('OPEN DIR'), accelerator: 'CommandOrControl+K' },
+                { type: 'separator' },
+                { label: 'Сохранить', click: () => window.win.webContents.send('SAVE FILE', undefined), accelerator: 'CommandOrControl+S' },
+                { label: 'Сохранить как...', click: () => window.win.webContents.send('SAVE FILE AS'), accelerator: 'CommandOrControl+Shift+S' },
+            ]);
+
+            menu.popup({ window: window.win, x: 0, y: 31 });
+        });
+        document.getElementById('edit-menu').addEventListener('click', () => {
+            let menu = Menu.buildFromTemplate([
+                { label: 'Отменить', role: 'undo', accelerator: 'CommandOrControl+Z' },
+                { label: 'Повторить', role: 'redo', accelerator: 'CommandOrControl+Y' },
+                { type: 'separator' },
+                { label: 'Вырезать', role: 'cut', accelerator: 'CommandOrControl+X' },
+                { label: 'Копировать', role: 'copy', accelerator: 'CommandOrControl+C' },
+                { label: 'Вставить', role: 'paste', accelerator: 'CommandOrControl+V' },
+            ]);
+
+            menu.popup({ window: window.win, x: 54, y: 31 });
+        });
+        document.getElementById('view-menu').addEventListener('click', () => {
+            let menu = Menu.buildFromTemplate([
+                { label: 'Приблизить', role: 'zoomIn', accelerator: 'CommandOrControl+Plus' },
+                { label: 'Отдалить', role: 'zoomOut', accelerator: 'CommandOrControl+-' },
+            ]);
+
+            menu.popup({ window: window.win, x: 123, y: 31 });
+        });
+        document.getElementById('win-menu').addEventListener('click', () => {
+            let menu = Menu.buildFromTemplate([
+                { label: 'Свернуть', role: 'minimize' },
+                { label: 'Закрыть', role: 'quit' },
+                { label: 'Открыть консоль', click: () => { window.win.webContents.openDevTools({mode: 'undocked'}); } },
+            ]);
+
+            menu.popup({ window: window.win, x: 163, y: 31 });
+        });
+    })
+
+    window.filesbar = document.getElementById('open-files-bar-table');
 
     if (fs.existsSync(`${__dirname}\\storage\\storage.json`)) {
         window.settings = JSON.parse(fs.readFileSync(`${__dirname}\\storage\\storage.json`));
@@ -151,12 +154,12 @@ window.onload = function () {
     window.form.onmouseup = function (e) {
         if (e.which == 3) {
             let menu = Menu.buildFromTemplate([
-                { label: 'Отменить', role: 'undo', accelerator: 'CmdOrCtrl+Z' },
-                { label: 'Повторить', role: 'redo', accelerator: 'CmdOrCtrl+Y' },
+                { label: 'Отменить', role: 'undo', accelerator: 'CommandOrControl+Z' },
+                { label: 'Повторить', role: 'redo', accelerator: 'CommandOrControl+Y' },
                 { type: 'separator' },
-                { label: 'Вырезать', role: 'cut', accelerator: 'CmdOrCtrl+X' },
-                { label: 'Копировать', role: 'copy', accelerator: 'CmdOrCtrl+C' },
-                { label: 'Вставить', role: 'paste', accelerator: 'CmdOrCtrl+V' },
+                { label: 'Вырезать', role: 'cut', accelerator: 'CommandOrControl+X' },
+                { label: 'Копировать', role: 'copy', accelerator: 'CommandOrControl+C' },
+                { label: 'Вставить', role: 'paste', accelerator: 'CommandOrControl+V' },
             ]);
 
             menu.popup({ window: window.win });
@@ -215,9 +218,8 @@ ipcRenderer.on('OPEN FILE', function () {
         });
     }
 });
-ipcRenderer.on('SAVE FILE', function (file) {
-    console.log(file !== undefined && file.path !== undefined);
-    console.log(window.currentfile.path !== undefined && file === undefined);
+
+ipcRenderer.on('SAVE FILE', function (e, file) {
     if (file !== undefined && file.path !== undefined) {
         fs.writeFileSync(file.path, window.edit.innerText, 'utf8');
     }
@@ -228,6 +230,7 @@ ipcRenderer.on('SAVE FILE', function (file) {
         window.win.webContents.send('SAVE FILE AS');
     }
 });
+
 ipcRenderer.on('SAVE FILE AS', function () {
     let result = dialog.showSaveDialogSync({
         title: 'Сохранить как',

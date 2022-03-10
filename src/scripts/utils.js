@@ -48,6 +48,20 @@ function checkLines() {
 }
 
 function openFile(file) {
+    for (let el of window.filesbar.children) {
+        if ( el.children.length > 0 ) {
+            el.children[0].style = 'color: #000000';
+        }
+    }
+
+    if (file) {
+        let tmp = document.getElementById(file.name); 
+        
+        if (tmp) {
+            tmp.style = 'color: #3e9eba';
+        }
+    }
+
     window.edit.innerText = '';
     window.divcount = 0;
     window.lines = 0;
@@ -62,7 +76,7 @@ function openFile(file) {
         };
     }
 
-    if (file.value !== undefined) {
+    if (file.value) {
         file.value.toString().split('\n').forEach(function (line) {
             let ln = document.createElement('div');
             ln.innerHTML = line;
@@ -72,6 +86,7 @@ function openFile(file) {
     }
     else {
         window.edit.innerHTML = '';
+        newLine();
     }
         
     window.currentfile = file;
@@ -83,17 +98,14 @@ function openFile(file) {
         fileCont.innerHTML = `<p>${file.name}</p>`;
         let cell = window.filesbar.insertCell(window.openfiles.names.length-1);
         cell.className = 'open-files-bar-cont';
-        cell.style = 'background-color: #C1C1C1';
 
-        for (let el of window.filesbar.children) {
-            el.style = '';
-        }
+        fileCont.style = 'color: #3e9eba';
 
         cell.appendChild(fileCont);
 
-        cell.onclick = function () {
-            cell.style = 'background-color: #C1C1C1';
+        fileCont.onclick = function () {
             openFile(file);
+            fileCont.style = 'color: #3e9eba';
         }
 
         window.openfiles.names.push(file.name);
@@ -108,9 +120,7 @@ function saveAll() {
 
     fs.writeFileSync(`${__dirname}\\..\\storage\\storage.json`, JSON.stringify(window.settings));
     Object.keys(window.openfiles.dict).forEach((file) => {
-        console.log('1 ', file);
         if (window.openfiles.dict[file].path !== undefined) {
-            console.log('2 ', window.openfiles.dict[file]);
             window.win.webContents.send('SAVE FILE', window.openfiles.dict[file]);
         }
     });
