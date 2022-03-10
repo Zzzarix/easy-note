@@ -6,10 +6,15 @@ module.exports = {
     checkLines: checkLines,
     openFile: openFile,
     saveAll: saveAll,
-    getCaretPos: getCaretPos
+    getCaretPos: getCaretPos,
+    sleep: sleep,
 };
 
 Object.defineProperty(module.exports, "__esModule", { value: true });
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function getLines() {
     return window.edit.children.length;
@@ -59,43 +64,57 @@ function openFile(file) {
 
     if (file.value !== undefined) {
         file.value.toString().split('\n').forEach(function (line) {
-            let ln = document.createElement('br');
-            window.edit.innerHTML += line;
+            let ln = document.createElement('div');
+            ln.innerHTML = line;
             window.edit.appendChild(ln);
             newLine();
         });
+    }
+    else {
+        window.edit.innerHTML = '';
+    }
         
-        window.currentfile = file;
+    window.currentfile = file;
+    window.openfiles.dict[file.name] = file;
 
-        if (window.openfiles.names.indexOf(file) === -1 && (Object.keys(window.openfiles.dict).length > window.openfiles.names.length || Object.keys(window.openfiles.dict).length === 0)) {
-            let fileCont = document.createElement('div');
-            fileCont.id = file.name;
-            fileCont.innerHTML = `<p>${file.name}</p>`;
-            let cell = window.filesbar.insertCell(window.openfiles.names.length-1);
-            cell.className = 'open-files-bar-cont';
-            cell.appendChild(fileCont);
+    if (window.openfiles.names.indexOf(file) === -1 && (Object.keys(window.openfiles.dict).length > window.openfiles.names.length || Object.keys(window.openfiles.dict).length === 0)) {
+        let fileCont = document.createElement('div');
+        fileCont.id = file.name;
+        fileCont.innerHTML = `<p>${file.name}</p>`;
+        let cell = window.filesbar.insertCell(window.openfiles.names.length-1);
+        cell.className = 'open-files-bar-cont';
+        cell.style = 'background-color: #C1C1C1';
 
-            fileCont.onclick = function () {
-                openFile(file);
-            }
-            window.openfiles.dict[file.name] = file;
-            window.openfiles.names.push(file.name);
+        for (let el of window.filesbar.children) {
+            el.style = '';
         }
+
+        cell.appendChild(fileCont);
+
+        cell.onclick = function () {
+            cell.style = 'background-color: #C1C1C1';
+            openFile(file);
+        }
+
+        window.openfiles.names.push(file.name);
     }
     checkLines();
 }
 
 function saveAll() {
+    window.saveflag = false;
     window.settings['currentfile'] = window.currentfile;
     window.settings['openfiles'] = window.openfiles;
 
-    fs.writeFileSync('../easy-note/src/storage/storage.json', JSON.stringify(window.settings));
+    fs.writeFileSync(`${__dirname}\\..\\storage\\storage.json`, JSON.stringify(window.settings));
     Object.keys(window.openfiles.dict).forEach((file) => {
-        if (window.openfiles.dict[file].path != undefined) {
+        console.log('1 ', file);
+        if (window.openfiles.dict[file].path !== undefined) {
+            console.log('2 ', window.openfiles.dict[file]);
             window.win.webContents.send('SAVE FILE', window.openfiles.dict[file]);
         }
     });
-
+    window.saveflag = true;
 }
 
 function getCaretPos() {

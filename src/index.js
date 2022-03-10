@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, globalShortcut } from 'electron';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -24,10 +24,10 @@ const createWindow = () => {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL(`file://${__dirname}/index.html`);
+  mainWindow.loadURL(`file://${__dirname}\\index.html`);
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools({mode: 'undocked'});
+  mainWindow.webContents.openDevTools({mode: 'undocked'});
 
   // Emitted when the window is closed.
   mainWindow.on('closed', () => {
@@ -55,6 +55,14 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
+  globalShortcut.register('CmdOrCtrl+N', mainWindow.webContents.send('NEW FILE'));
+  globalShortcut.register('CmdOrCtrl+Shift+N', mainWindow.webContents.send('NEW WIN'));
+  globalShortcut.register('CmdOrCtrl+O', mainWindow.webContents.send('OPEN FILE'));
+  globalShortcut.register('CmdOrCtrl+S', mainWindow.webContents.send('SAVE FILE', undefined));
+  globalShortcut.register('CmdOrCtrl+Shift+S', mainWindow.webContents.send('SAVE FILE AS'));
+  globalShortcut.register('CmdOrCtrl+N', mainWindow.webContents.send('NEW FILE'));
+  globalShortcut.register('CmdOrCtrl+N', mainWindow.webContents.send('NEW FILE'));
+  
   if (mainWindow === null) {
     createWindow();
   }

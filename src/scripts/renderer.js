@@ -4,7 +4,7 @@ const { Menu, dialog } = remote;
 const fs = require('fs');
 const path = require('path');
 
-import { newLine, checkLines, openFile, saveAll, getCaretPos } from '../src/scripts/utils.js';
+import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep } from '..\\src\\scripts\\utils.js';
 
 window.win = remote.getCurrentWindow(); // current electron window
 const Browserwindow = remote.BrowserWindow; // browser window constructor
@@ -15,12 +15,12 @@ const Browserwindow = remote.BrowserWindow; // browser window constructor
     window.countcolumn, // count column element
     window.form, // editable form element
     window.filesbar, // bar of opened files element
-    window.rectButton, // maximize / minimize button 
+    window.rectButton, // maximize / minimize button
     window.currentfile = {}, // current file
     window.openfiles = { names: [], dict: {} }, // list of opened files
     window.divcount = 0, // count of div's in editable element
     window.lines = 0, // total lines in count column element
-    window.saveflag, // can be saved boolean
+    window.saveflag = true, // app can be closed - boolean
     window.settings = {} // current window settings {
                     //   'currentfile':  window.currentfile,
                     //   'openfiles': window.openfiles
@@ -28,7 +28,7 @@ const Browserwindow = remote.BrowserWindow; // browser window constructor
 );
 
 function preload() {
-    document.getElementById('close-btn').addEventListener('click', () => { window.saveflag = false; saveAll(); window.win.close(); });
+    document.getElementById('close-btn').addEventListener('click', () => { if (!window.saveflag) { while (true) { if (window.saveflag) { break; } sleep(60) } } window.win.close(); });
 
     window.rectButton = document.getElementById('rect-btn');
     window.rectButton.addEventListener('click', () => { if (window.win.isMaximized()) { window.win.unmaximize() } else { window.win.maximize() } });
@@ -46,11 +46,11 @@ function preload() {
             { label: 'Новый файл', click: () => window.win.webContents.send('NEW FILE'), accelerator: 'CmdOrCtrl+N' },
             { label: 'Новое окно', click: () => window.win.webContents.send('NEW WIN'), accelerator: 'CmdOrCtrl+Shift+N' },
             { type: 'separator' },
-            { label: 'Открыть файл...', click: () => window.win.webContents.send('OPEN FILE', dialog), accelerator: 'CmdOrCtrl+O' },
+            { label: 'Открыть файл...', click: () => window.win.webContents.send('OPEN FILE'), accelerator: 'CmdOrCtrl+O' },
             // { label: 'Открыть папку...', click: () => window.win.webContents.send('OPEN DIR'), accelerator: 'CmdOrCtrl+K' },
             { type: 'separator' },
             { label: 'Сохранить', click: () => window.win.webContents.send('SAVE FILE', undefined), accelerator: 'CmdOrCtrl+S' },
-            { label: 'Сохранить как...', click: () => window.win.webContents.send('SAVE FILE AS', dialog), accelerator: 'CmdOrCtrl+Shift+S' },
+            { label: 'Сохранить как...', click: () => window.win.webContents.send('SAVE FILE AS'), accelerator: 'CmdOrCtrl+Shift+S' },
         ]);
 
         menu.popup({ window: window.win, x: 0, y: 31 });
@@ -88,22 +88,24 @@ function preload() {
 
     newLine();
 
-    if (fs.exists('../easy-note/src/storage/storage.json', (err) => { if (err) console.warn('Settings file cannot be found'); })) {
-        window.settings = JSON.parse(fs.readFile('../easy-note/src/storage/storage.json', (err) => { if (err) console.warn(`Settings file cannot be read: ${err}`); }));
-        window.currentfile = window.settings['currentfile'];
-        if (window.currentfile.name !== 'untitled') {
-            openFile(window.currentfile);
-        }
-        else {
-            openFile(undefined);
+    if (fs.existsSync(`${__dirname}\\storage\\storage.json`)) {
+        window.settings = JSON.parse(fs.readFileSync(`${__dirname}\\storage\\storage.json`));
+        if (Object.keys(window.settings).length > 0){
+            Object.keys(window.settings.openfiles.dict).forEach((file, index) => {
+                openFile(window.settings.openfiles.dict[file]);
+            });
+            openFile(window.settings.currentfile);
+            if (window.openfiles.names.length === 0){
+                openFile(undefined);
+            }
         }
     }
     else {
-        fs.writeFile('../easy-note/src/storage/storage.json', '{}', (err) => { console.warn(`Settings file cannot be written: ${err}`); });
+        fs.writeFileSync(`${__dirname}\\storage\\storage.json`, '{}');
         openFile(undefined);
     }
     
-    // setInterval(() => { if (window.saveflag) saveAll() }, 10000);
+    setInterval(() => { if (window.saveflag) saveAll() }, 10000);
 }
 
 window.onload = function () {
@@ -113,11 +115,9 @@ window.onload = function () {
         let x = e.clientY - 70;
         window.curline = Math.max(Math.min(Math.ceil(x / 19), edit.children.length), 1);
         
-        console.log(window.curline);
     }
 
     window.edit.addEventListener('DOMNodeInserted', function(e) {
-        console.log(e);
         if (e.target === 'text' && window.edit.children.length === 0) {
             
         }
@@ -126,7 +126,6 @@ window.onload = function () {
     });
 
     window.edit.addEventListener('DOMNodeRemoved', function(e) {
-        console.log(e);
     });
 
     window.form.onpaste = function (e) {
@@ -140,8 +139,6 @@ window.onload = function () {
 
             window.edit.appendChild(cont);
         }
-
-        console.log(getCaretPos())
 
         window.currentfile.value = window.edit.innerText;
         checkLines();
@@ -193,7 +190,7 @@ ipcRenderer.on('NEW WIN', function () {
             contextIsolation: false
         }
     });
-    win.loadURL(`file://${__dirname}/index.html`);
+    win.loadURL(`file://${__dirname}\\index.html`);
 });
 ipcRenderer.on('OPEN FILE', function () {
     let result = dialog.showOpenDialogSync({
@@ -219,10 +216,12 @@ ipcRenderer.on('OPEN FILE', function () {
     }
 });
 ipcRenderer.on('SAVE FILE', function (file) {
+    console.log(file !== undefined && file.path !== undefined);
+    console.log(window.currentfile.path !== undefined && file === undefined);
     if (file !== undefined && file.path !== undefined) {
         fs.writeFileSync(file.path, window.edit.innerText, 'utf8');
     }
-    else if (window.currentfile.path !== undefined) {
+    else if (window.currentfile.path !== undefined && file === undefined) {
         fs.writeFileSync(window.currentfile.path, window.edit.innerText, 'utf8');
     }
     else {
