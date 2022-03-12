@@ -1,4 +1,4 @@
-const { clipboard, shell } = require('electron');
+const { clipboard, shell, ipcRenderer } = require('electron');
 
 'use strict';
 
@@ -11,6 +11,8 @@ module.exports = {
     getCaretPos: getCaretPos,
     sleep: sleep,
     removeFile: removeFile,
+    insertInTextArea: insertInTextArea,
+    setTaskBar: setTaskBar,
 };
 
 Object.defineProperty(module.exports, "__esModule", { value: true });
@@ -51,15 +53,17 @@ function checkLines() {
 }
 
 function openFile(file) {
+    try { window.win.send('SET TASK NAME', `Открываю '${file.name}'...`); } catch (e) {}
     for (let el of window.filesbar.children) {
-        el.style = 'color: #000000';
+        if (window.isdarktheme) { el.style.color = '#ffffff'; }
+        else { el.style.color = '#000000'; }
     }
 
     if (file) {
         let tmp = document.getElementById(file.name + ' ' + file.path); 
         
         if (tmp) {
-            tmp.style = 'color: #3e9eba';
+            tmp.style.color = '#3e9eba';
         }
     }
 
@@ -68,16 +72,16 @@ function openFile(file) {
     window.lines = 0;
     window.countcolumn.children[0].innerHTML = '';
     
-    if (file === undefined) {
+    if (!file) {
         file = {
             value: '',
-            path: undefined,
+            path: '',
             name: 'untitled',
             type: 'file'
         };
     }
-    else if ( window.openfiles.names.length === 1 ) {
-        removeFile({ value: '', path: undefined, name: 'untitled', type: 'file' });
+    else if (Object.keys(window.openfiles.dict).length === 1 && Object.keys(window.openfiles.dict).indexOf('') !== -1 ) {
+        if (window.openfiles.dict[''].value === '') { console.log(1); removeFile({ path: '', name: 'untitled' }); }
     }
 
     if (file.value) {
@@ -94,20 +98,17 @@ function openFile(file) {
         
     window.currentfile = file;
 
-    if (file.path === undefined) { window.openfiles.dict['untitled'] = file; }
-    else { window.openfiles.dict[file.path] = file; }
-
-    if (window.openfiles.names.indexOf(file) === -1 && (Object.keys(window.openfiles.dict).length > window.openfiles.names.length || Object.keys(window.openfiles.dict).length === 0)) {
+    if (Object.keys(window.openfiles.dict).indexOf(file.path) === -1 || Object.keys(window.openfiles.dict).length === 0 ) {
         let fileCont = document.createElement('div');
         fileCont.className = 'open-files-bar-cont';
-        if (file.name.length > 20) {
-            fileCont.innerHTML = `<p>${file.name.splice(17)}...</p>`;
+        if (file.name.length > 18) {
+            fileCont.innerHTML = `<p>${file.name.substr(0, 15)}...</p>`;
         }
         else {
             fileCont.innerHTML = `<p>${file.name}</p>`;
         }
         
-        let cell = window.filesbar.insertCell(window.openfiles.names.length-1);
+        let cell = window.filesbar.insertCell(Object.keys(window.openfiles.dict).length-1);
         
         cell.id = file.name + ' ' + file.path;
         cell.className = 'open-files-bar-wrapper';
@@ -122,12 +123,13 @@ function openFile(file) {
         // }
         
         
-        cell.style = 'color: #3e9eba';
+        cell.style = `color: #3e9eba; width: ${Math.max(fileCont.clientWidth + 20, 150)}`;
 
         // fileCont.appendChild(filecloser);
         cell.appendChild(fileCont);
 
         fileCont.onclick = function () {
+            if (window.currentfile === file) { return; }
             openFile(file);
             cell.style = 'color: #3e9eba';
         }
@@ -135,7 +137,7 @@ function openFile(file) {
         fileCont.onmouseup = function (e) {
             if (e.which == 3) {
                 let menu = Menu.buildFromTemplate([
-                    { label: 'Закрыть', click: function () { removeFile(file); } },
+                    { label: 'Закрыть', click: function () { saveAll(); if (!window.saveflag) { while (true) { if (window.saveflag) { break; } sleep(60); } } removeFile(file); } },
                     { label: 'Скопировать путь', click: function () { clipboard.writeText(file.path); }, enabled: file.path === undefined? false : true },
                     { label: 'Показать в проводнике', click: function () { shell.showItemInFolder(file.path); }, enabled: file.path === undefined? false : true },
                 ]);
@@ -143,45 +145,54 @@ function openFile(file) {
                 menu.popup({ window: window.win });
             }
         }
-
-        window.openfiles.names.push(file.path);
     }
     checkLines();
-    window.openfiles.names = Object.keys(window.openfiles.dict);
+    window.openfiles.dict[file.path] = file;
+
+    sleep(500);
+    setTaskBar();
+}
+
+function setTaskBar(text='Готово') {
+    try { window.win.send('SET TASK NAME', text); } catch (e) { console.log(e); }
 }
 
 function removeFile(file) {
-    let splindex = -1;
-    window.openfiles.names.forEach((el, index) => {
-        if (el === file.path && splindex > 0) { splindex = index };
-    });
-    window.openfiles.names.splice(splindex, 1);
     delete window.openfiles.dict[file.path];
 
     try { document.getElementById(file.name + ' ' + file.path).remove(); } catch (e) { console.log(e, file.name + ' ' + file.path, file); }
 
-    if ( window.openfiles.names.length < 1 ) {
+    if ( Object.keys(window.openfiles.dict).length === 0  ) {
         openFile(undefined);
     }
     else {
-        openFile(window.openfiles.dict[window.openfiles.names[0]]);
+        openFile(window.openfiles.dict[Object.keys(window.openfiles.dict)[0]]);
     }
-
-    window.openfiles.names = Object.keys(window.openfiles.dict);
 }
 
 function saveAll() {
+    setTaskBar('Сохранение...');
     window.saveflag = false;
     window.settings['currentfile'] = window.currentfile;
+    Object.keys(window.openfiles.dict).forEach(function (file) {
+        if (!window.openfiles.dict[file].name) { window.openfiles.dict[file].name = 'untitled' }
+        if (!window.openfiles.dict[file].value) { window.openfiles.dict[file].value = '' }
+    });
     window.settings['openfiles'] = window.openfiles;
 
     fs.writeFileSync(`${window.appdir}\\storage\\storage.json`, JSON.stringify(window.settings));
     Object.keys(window.openfiles.dict).forEach((file) => {
-        if (window.openfiles.dict[file].path !== undefined) {
+        if (window.openfiles.dict[file].path) {
             window.win.webContents.send('SAVE FILE', window.openfiles.dict[file]);
         }
     });
+
+    ipcRenderer.send('SET TOSAVE DATA', { openfiles: window.openfiles, currentfile: window.currentfile, settings: window.settings }, { storage: `${window.appdir}\\storage\\storage.json` });
+
     window.saveflag = true;
+
+    sleep(500);
+    setTaskBar();
 }
 
 function getCaretPos() {
@@ -207,4 +218,8 @@ function getCaretPos() {
         caretOffset = preCaretTextRange.text.length;
     }
     return caretOffset;
+}
+
+function insertInTextArea(text, pos) {
+    window.edit.value = window.edit.value.substr(0, pos) + text + window.edit.value.slice(pos+1);
 }

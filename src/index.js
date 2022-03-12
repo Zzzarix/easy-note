@@ -1,4 +1,5 @@
-import { app, BrowserWindow, globalShortcut } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
+const fs = require('fs');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -23,8 +24,11 @@ const createWindow = () => {
     }
   });
 
+  mainWindow.setMinimumSize(300, 300);
+
   // and load the index.html of the app.
   mainWindow.loadURL(`file://${__dirname}\\index.html`);
+  mainWindow.webContents.executeJavaScript('console.log(process.argv)');
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools({mode: 'undocked'});
@@ -38,9 +42,27 @@ const createWindow = () => {
   });
 };
 
+let tosavepaths;
+let tosave;
+
+ipcMain.on('SET TOSAVE DATA', (e, data, paths) => { tosave = data; tosavepaths = paths; });
+
 const savedata = () => {
-  
-};
+  fs.writeFileSync(tosavepaths.storage, JSON.stringify(tosave.settings));
+
+  Object.keys(tosave.openfiles.dict).forEach(function (file) {
+    if (!tosave.openfiles.dict[file].name) { tosave.openfiles.dict[file].name = 'untitled' }
+    if (!tosave.openfiles.dict[file].value) { tosave.openfiles.dict[file].value = '' }
+  });
+
+  tosave.settings['openfiles'] = tosave.openfiles;
+
+  Object.keys(tosave.openfiles.dict).forEach((file) => {
+    if (!tosave.openfiles.dict[file].path) {
+      fs.writeFileSync(tosave.openfiles.dict[file].path, tosave.openfiles.dict[file].value, 'utf8');
+    }
+  });
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -53,7 +75,9 @@ app.on('before-quit', savedata)
 app.on('window-all-closed', () => {
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
-  mainWindow.webContents.send('SAVE ALL');
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
 app.on('activate', () => {

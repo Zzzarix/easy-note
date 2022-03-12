@@ -5,20 +5,21 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep, removeFile } from '..\\src\\scripts\\utils.js';
+import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep, removeFile, insertInTextArea, setTaskBar } from '..\\src\\scripts\\utils.js';
 
 window.win = remote.getCurrentWindow(); // current electron window
 const Browserwindow = remote.BrowserWindow; // browser window constructor
 
 (  
     window.edit, // editable element
+    window.isdarktheme = false, // is durk theme currently | boolean
     window.curline, // editable element selected line
     window.countcolumn, // count column element
     window.form, // editable form element
     window.filesbar, // bar of opened files element
     window.rectButton, // maximize / minimize button
     window.currentfile = {}, // current file
-    window.openfiles = { names: [], dict: {} }, // list of opened files
+    window.openfiles = { dict: {} }, // list of opened files
     window.divcount = 0, // count of div's in editable element
     window.lines = 0, // total lines in count column element
     window.saveflag = true, // app can be closed - boolean
@@ -43,6 +44,8 @@ function preload() {
     window.edit = document.getElementById('field');
     window.countcolumn = document.getElementById('column-table');
     window.form = document.getElementById('form');
+    window.taskbar = document.getElementById('task-bar-task-name');
+    window.themechangebtn = document.getElementById('change-theme-btn');
     
     newLine();
     
@@ -86,6 +89,7 @@ function preload() {
                 { label: 'Свернуть', role: 'minimize' },
                 { label: 'Закрыть', role: 'quit' },
                 { label: 'Открыть консоль', click: () => { window.win.webContents.openDevTools({mode: 'undocked'}); } },
+                { label: 'Очистить рабочую область', click: () => { Object.keys(window.openfiles.dict).forEach((file) => { removeFile(window.openfiles.dict[file]); }); window.currentfile = null; openFile(undefined); } },
             ]);
 
             menu.popup({ window: window.win, x: 163, y: 31 });
@@ -109,15 +113,14 @@ function preload() {
     window.appdir = `${window.homedir}\\Atom prod\\Easy app`
 
     if (fs.existsSync(`${window.appdir}\\storage\\storage.json`)) {
-        window.settings = JSON.parse(fs.readFileSync(`${window.appdir}\\storage\\storage.json`));
+        try { window.settings = JSON.parse(fs.readFileSync(`${window.appdir}\\storage\\storage.json`)); } catch (e) { window.settings = {}; fs.writeFileSync(`${window.appdir}\\storage\\storage.json`, '{}'); }
         if (Object.keys(window.settings).length > 0){
-            Object.keys(window.settings.openfiles.dict).forEach((file, index) => {
+            Object.keys(window.settings.openfiles.dict).forEach((file) => {
                 openFile(window.settings.openfiles.dict[file]);
             });
-            openFile(window.settings.currentfile);
-            if (window.openfiles.names.length === 0){
-                openFile(undefined);
-            }
+            if (window.settings.currentfile) { openFile(window.settings.currentfile); }
+            
+            if (Object.keys(window.openfiles.dict).length === 0) { openFile(undefined); }
         }
     }
     else {
@@ -125,7 +128,7 @@ function preload() {
         openFile(undefined);
     }
     
-    setInterval(() => { if (window.saveflag) saveAll() }, 10000);
+    setInterval(() => { if (window.saveflag) { saveAll(); } }, 10000);
 }
 
 window.onload = function () {
@@ -149,17 +152,6 @@ window.onload = function () {
     });
 
     window.form.onpaste = function (e) {
-        window.currentfile.value = window.edit.value;
-        checkLines();
-    }
-
-    window.form.oninput = function (e) {
-        if (window.edit.children.length === 0) {
-            let cont = document.createElement('div');
-
-            window.edit.appendChild(cont);
-        }
-
         window.currentfile.value = window.edit.value;
         checkLines();
     }
@@ -190,26 +182,58 @@ window.onload = function () {
             window.divcount++;
         }
     });
+
+    window.themechangebtn.onclick = function () {
+        if (window.isdarktheme) {
+            let lnk = document.createElement('link');
+            lnk.rel = `stylesheet`;
+            lnk.href = 'styles/light-theme.css';
+            lnk.id = 'light-theme';
+            
+            document.head.appendChild(lnk);
+            document.getElementById('dark-theme').remove();
+
+            for (let el of window.filesbar.children) {
+                el.style.color = '#000000';
+            }
+
+            let tmp = document.getElementById(window.currentfile.name + ' ' + window.currentfile.path); 
+        
+            if (tmp) {
+                tmp.style.color = '#3e9eba';
+            }
+        }
+        else {
+            let lnk = document.createElement('link');
+            lnk.rel = `stylesheet`;
+            lnk.href = 'styles/dark-theme.css';
+            lnk.id = 'dark-theme';
+            
+            document.head.appendChild(lnk);
+            document.getElementById('light-theme').remove();
+
+            for (let el of window.filesbar.children) {
+                el.style.color = '#ffffff';
+            }
+
+            let tmp = document.getElementById(window.currentfile.name + ' ' + window.currentfile.path); 
+        
+            if (tmp) {
+                tmp.style.color = '#3e9eba';
+            }
+        }
+        window.isdarktheme = !window.isdarktheme //window.themechangebtn
+    }
 }
 
 // events emmiters
 
-ipcRenderer.on('SAVE ALL', function () {
-    saveAll();
-    if (!window.saveflag) {
-        while (true) {
-            if (window.saveflag) {
-                break;
-            }
-            sleep(60)
-        }
-    }
-
-    app.quit();
+ipcRenderer.on('SET TASK NAME', function (e, name) {
+    window.taskbar.innerHTML = name;
 });
 
 ipcRenderer.on('NEW FILE', function () {
-    if (window.openfiles.names.indexOf('untitled') !== -1)
+    if (Object.keys(window.openfiles.dict).indexOf('untitled') !== -1)
     openFile(undefined);
 });
 
@@ -239,22 +263,22 @@ ipcRenderer.on('OPEN FILE', function () {
     });
     if (result != undefined) {
         result.forEach((pth) => {
-            window.openfiles.dict[pth] = {
+            let fl = {
                 value: fs.readFileSync(pth, 'utf8').toString(),
                 path: pth,
                 name: path.basename(pth),
                 type: 'file',
             };
-            openFile(window.openfiles.dict[pth]);
+            openFile(fl);
         });
     }
 });
 
 ipcRenderer.on('SAVE FILE', function (e, file) {
-    if (file !== undefined && file.path !== undefined) {
+    if (file && file.path) {
         fs.writeFileSync(file.path, window.edit.value, 'utf8');
     }
-    else if (window.currentfile.path !== undefined && file === undefined) {
+    else if (window.currentfile.path && !file) {
         fs.writeFileSync(window.currentfile.path, window.edit.value, 'utf8');
     }
     else {
@@ -269,12 +293,8 @@ ipcRenderer.on('SAVE FILE AS', function () {
     });
     if (result != undefined) {
         fs.writeFileSync(result, window.edit.value, 'utf8');
-        window.currentfile.path = result;
-        let fileCont = document.getElementById(window.currentfile.name);
-        fileCont.id = path.basename(result);
-        fileCont.innerHTML = path.basename(result);
-        window.openfiles.dict[result] = window.openfiles.dict[window.currentfile.path];
-        removeFile(window.currentfile.path);
-        window.currentfile.name = path.basename(result);
+        removeFile(window.currentfile);
+        window.currentfile = { value: window.currentfile.value, path: result, name: path.basename(result), type: 'file' };
+        openFile(window.currentfile);
     }
 });
