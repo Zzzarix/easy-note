@@ -1,3 +1,5 @@
+const { clipboard, shell } = require('electron');
+
 'use strict';
 
 module.exports = {
@@ -8,6 +10,7 @@ module.exports = {
     saveAll: saveAll,
     getCaretPos: getCaretPos,
     sleep: sleep,
+    removeFile: removeFile,
 };
 
 Object.defineProperty(module.exports, "__esModule", { value: true });
@@ -17,7 +20,7 @@ function sleep(ms) {
 }
 
 function getLines() {
-    return window.edit.children.length;
+    return window.edit.value.split('\n').length;
 }
 
 function newLine() {
@@ -49,24 +52,22 @@ function checkLines() {
 
 function openFile(file) {
     for (let el of window.filesbar.children) {
-        if ( el.children.length > 0 ) {
-            el.children[0].style = 'color: #000000';
-        }
+        el.style = 'color: #000000';
     }
 
     if (file) {
-        let tmp = document.getElementById(file.name); 
+        let tmp = document.getElementById(file.name + ' ' + file.path); 
         
         if (tmp) {
             tmp.style = 'color: #3e9eba';
         }
     }
 
-    window.edit.innerText = '';
+    window.edit.value = '';
     window.divcount = 0;
     window.lines = 0;
     window.countcolumn.children[0].innerHTML = '';
-
+    
     if (file === undefined) {
         file = {
             value: '',
@@ -75,42 +76,98 @@ function openFile(file) {
             type: 'file'
         };
     }
+    else if ( window.openfiles.names.length === 1 ) {
+        removeFile({ value: '', path: undefined, name: 'untitled', type: 'file' });
+    }
 
     if (file.value) {
         file.value.toString().split('\n').forEach(function (line) {
-            let ln = document.createElement('div');
-            ln.innerHTML = line;
-            window.edit.appendChild(ln);
+            window.edit.value += line.replace('\t', '    ') + '\n';
             newLine();
         });
+        window.edit.style.height = window.edit.scrollHeight + 'px';
     }
     else {
-        window.edit.innerHTML = '';
+        window.edit.value = '';
         newLine();
     }
         
     window.currentfile = file;
-    window.openfiles.dict[file.name] = file;
+
+    if (file.path === undefined) { window.openfiles.dict['untitled'] = file; }
+    else { window.openfiles.dict[file.path] = file; }
 
     if (window.openfiles.names.indexOf(file) === -1 && (Object.keys(window.openfiles.dict).length > window.openfiles.names.length || Object.keys(window.openfiles.dict).length === 0)) {
         let fileCont = document.createElement('div');
-        fileCont.id = file.name;
-        fileCont.innerHTML = `<p>${file.name}</p>`;
+        fileCont.className = 'open-files-bar-cont';
+        if (file.name.length > 20) {
+            fileCont.innerHTML = `<p>${file.name.splice(17)}...</p>`;
+        }
+        else {
+            fileCont.innerHTML = `<p>${file.name}</p>`;
+        }
+        
         let cell = window.filesbar.insertCell(window.openfiles.names.length-1);
-        cell.className = 'open-files-bar-cont';
+        
+        cell.id = file.name + ' ' + file.path;
+        cell.className = 'open-files-bar-wrapper';
 
-        fileCont.style = 'color: #3e9eba';
+        // let filecloser = document.createElement('div');
+        // filecloser.className = 'open-files-bar-cont-closer';
+        // filecloser.id = '_' + file.name + ' ' + file.path;
 
+        // filecloser.onclick = function () {
+        //     document.getElementById(file.name + ' ' + file.path).remove();
+        //     removeFile(file);
+        // }
+        
+        
+        cell.style = 'color: #3e9eba';
+
+        // fileCont.appendChild(filecloser);
         cell.appendChild(fileCont);
 
         fileCont.onclick = function () {
             openFile(file);
-            fileCont.style = 'color: #3e9eba';
+            cell.style = 'color: #3e9eba';
         }
 
-        window.openfiles.names.push(file.name);
+        fileCont.onmouseup = function (e) {
+            if (e.which == 3) {
+                let menu = Menu.buildFromTemplate([
+                    { label: 'Закрыть', click: function () { removeFile(file); } },
+                    { label: 'Скопировать путь', click: function () { clipboard.writeText(file.path); }, enabled: file.path === undefined? false : true },
+                    { label: 'Показать в проводнике', click: function () { shell.showItemInFolder(file.path); }, enabled: file.path === undefined? false : true },
+                ]);
+    
+                menu.popup({ window: window.win });
+            }
+        }
+
+        window.openfiles.names.push(file.path);
     }
     checkLines();
+    window.openfiles.names = Object.keys(window.openfiles.dict);
+}
+
+function removeFile(file) {
+    let splindex = -1;
+    window.openfiles.names.forEach((el, index) => {
+        if (el === file.path && splindex > 0) { splindex = index };
+    });
+    window.openfiles.names.splice(splindex, 1);
+    delete window.openfiles.dict[file.path];
+
+    try { document.getElementById(file.name + ' ' + file.path).remove(); } catch (e) { console.log(e, file.name + ' ' + file.path, file); }
+
+    if ( window.openfiles.names.length < 1 ) {
+        openFile(undefined);
+    }
+    else {
+        openFile(window.openfiles.dict[window.openfiles.names[0]]);
+    }
+
+    window.openfiles.names = Object.keys(window.openfiles.dict);
 }
 
 function saveAll() {
@@ -118,7 +175,7 @@ function saveAll() {
     window.settings['currentfile'] = window.currentfile;
     window.settings['openfiles'] = window.openfiles;
 
-    fs.writeFileSync(`${__dirname}\\..\\storage\\storage.json`, JSON.stringify(window.settings));
+    fs.writeFileSync(`${window.appdir}\\storage\\storage.json`, JSON.stringify(window.settings));
     Object.keys(window.openfiles.dict).forEach((file) => {
         if (window.openfiles.dict[file].path !== undefined) {
             window.win.webContents.send('SAVE FILE', window.openfiles.dict[file]);

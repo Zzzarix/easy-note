@@ -27,10 +27,11 @@
             <table id="column-table"></table>
           </div>
           <form id="form">
-            <div contenteditable id="field" class="text input-line"></div>
+            <textarea oninput="this.style.height=''; this.style.height=this.scrollHeight + 'px'" wrap="off" id="field" class="text input-line"></textarea>
+           <div id="bottom-cap" style="height: 100px; "></div>
           </form>
         </div>
-        <div id="bottom-cap"></div>
+        <div id="task-bar"></div>
       </div>
     </div>
     <script type="module" src="scripts/utils.js"></script>

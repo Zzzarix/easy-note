@@ -3,8 +3,9 @@ const { Menu, dialog, app } = remote;
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep } from '..\\src\\scripts\\utils.js';
+import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep, removeFile } from '..\\src\\scripts\\utils.js';
 
 window.win = remote.getCurrentWindow(); // current electron window
 const Browserwindow = remote.BrowserWindow; // browser window constructor
@@ -21,6 +22,8 @@ const Browserwindow = remote.BrowserWindow; // browser window constructor
     window.divcount = 0, // count of div's in editable element
     window.lines = 0, // total lines in count column element
     window.saveflag = true, // app can be closed - boolean
+    window.homedir = os.homedir() + '\\AppData\\Local', // homedir 
+    window.appdir, // app local dir for saving system files
     window.settings = {} // current window settings {
                     //   'currentfile':  window.currentfile,
                     //   'openfiles': window.openfiles
@@ -91,8 +94,22 @@ function preload() {
 
     window.filesbar = document.getElementById('open-files-bar-table');
 
-    if (fs.existsSync(`${__dirname}\\storage\\storage.json`)) {
-        window.settings = JSON.parse(fs.readFileSync(`${__dirname}\\storage\\storage.json`));
+    if (!fs.existsSync(`${window.homedir}\\Atom prod`)) {
+        fs.mkdirSync(`${window.homedir}\\Atom prod`)
+    }
+
+    if (!fs.existsSync(`${window.homedir}\\Atom prod\\Easy app`)) {
+        fs.mkdirSync(`${window.homedir}\\Atom prod\\Easy app`)
+    }
+
+    if (!fs.existsSync(`${window.homedir}\\Atom prod\\Easy app\\storage`)) {
+        fs.mkdirSync(`${window.homedir}\\Atom prod\\Easy app\\storage`)
+    }
+
+    window.appdir = `${window.homedir}\\Atom prod\\Easy app`
+
+    if (fs.existsSync(`${window.appdir}\\storage\\storage.json`)) {
+        window.settings = JSON.parse(fs.readFileSync(`${window.appdir}\\storage\\storage.json`));
         if (Object.keys(window.settings).length > 0){
             Object.keys(window.settings.openfiles.dict).forEach((file, index) => {
                 openFile(window.settings.openfiles.dict[file]);
@@ -104,7 +121,7 @@ function preload() {
         }
     }
     else {
-        fs.writeFileSync(`${__dirname}\\storage\\storage.json`, '{}');
+        fs.writeFileSync(`${window.appdir}\\storage\\storage.json`, '{}');
         openFile(undefined);
     }
     
@@ -132,7 +149,7 @@ window.onload = function () {
     });
 
     window.form.onpaste = function (e) {
-        window.currentfile.value = window.edit.innerText;
+        window.currentfile.value = window.edit.value;
         checkLines();
     }
 
@@ -143,7 +160,7 @@ window.onload = function () {
             window.edit.appendChild(cont);
         }
 
-        window.currentfile.value = window.edit.innerText;
+        window.currentfile.value = window.edit.value;
         checkLines();
     }
 
@@ -175,7 +192,21 @@ window.onload = function () {
     });
 }
 
-// events emmiter
+// events emmiters
+
+ipcRenderer.on('SAVE ALL', function () {
+    saveAll();
+    if (!window.saveflag) {
+        while (true) {
+            if (window.saveflag) {
+                break;
+            }
+            sleep(60)
+        }
+    }
+
+    app.quit();
+});
 
 ipcRenderer.on('NEW FILE', function () {
     if (window.openfiles.names.indexOf('untitled') !== -1)
@@ -208,23 +239,23 @@ ipcRenderer.on('OPEN FILE', function () {
     });
     if (result != undefined) {
         result.forEach((pth) => {
-            window.openfiles.dict[path.basename(pth)] = {
+            window.openfiles.dict[pth] = {
                 value: fs.readFileSync(pth, 'utf8').toString(),
                 path: pth,
                 name: path.basename(pth),
                 type: 'file',
             };
-            openFile(window.openfiles.dict[path.basename(pth)]);
+            openFile(window.openfiles.dict[pth]);
         });
     }
 });
 
 ipcRenderer.on('SAVE FILE', function (e, file) {
     if (file !== undefined && file.path !== undefined) {
-        fs.writeFileSync(file.path, window.edit.innerText, 'utf8');
+        fs.writeFileSync(file.path, window.edit.value, 'utf8');
     }
     else if (window.currentfile.path !== undefined && file === undefined) {
-        fs.writeFileSync(window.currentfile.path, window.edit.innerText, 'utf8');
+        fs.writeFileSync(window.currentfile.path, window.edit.value, 'utf8');
     }
     else {
         window.win.webContents.send('SAVE FILE AS');
@@ -237,19 +268,13 @@ ipcRenderer.on('SAVE FILE AS', function () {
         buttonLabel: 'Сохранить',
     });
     if (result != undefined) {
-        fs.writeFileSync(result, window.edit.innerText, 'utf8');
+        fs.writeFileSync(result, window.edit.value, 'utf8');
         window.currentfile.path = result;
         let fileCont = document.getElementById(window.currentfile.name);
         fileCont.id = path.basename(result);
         fileCont.innerHTML = path.basename(result);
-        window.openfiles.dict[path.basename(result)] = window.openfiles.dict[window.currentfile.name];
-        delete window.openfiles.dict[window.currentfile.name];
-        let splindex = -1;
-        window.openfiles.names.forEach((el, index) => {
-            if (el === window.openfiles.dict && splindex > 0) splindex = index;
-        });
-        window.openfiles.names.splice(splindex, 1);
-        window.openfiles.names.push(path.basename(result));
+        window.openfiles.dict[result] = window.openfiles.dict[window.currentfile.path];
+        removeFile(window.currentfile.path);
         window.currentfile.name = path.basename(result);
     }
 });

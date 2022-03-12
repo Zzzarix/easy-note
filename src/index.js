@@ -27,7 +27,7 @@ const createWindow = () => {
   mainWindow.loadURL(`file://${__dirname}\\index.html`);
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools({mode: 'undocked'});
+  // mainWindow.webContents.openDevTools({mode: 'undocked'});
 
   // Emitted when the window is closed.
   mainWindow.on('closed', () => {
@@ -38,19 +38,22 @@ const createWindow = () => {
   });
 };
 
+const savedata = () => {
+  
+};
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', createWindow);
+
+app.on('before-quit', savedata)
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   mainWindow.webContents.send('SAVE ALL');
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
 });
 
 app.on('activate', () => {
