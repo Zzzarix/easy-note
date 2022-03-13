@@ -48,8 +48,7 @@ function preload() {
 
     document.getElementById('minus-btn').addEventListener('click', () => { window.win.minimize() });
     
-    window.edit = document.getElementById('hidden-field');
-    window.show = document.getElementById('field');
+    window.edit = document.getElementById('field');
     window.countcolumn = document.getElementById('column-table');
     window.form = document.getElementById('form');
     window.taskbar = document.getElementById('task-bar-task-name');
@@ -157,26 +156,14 @@ window.onload = function () {
     window.form.oninput = function (e) {
         let char = e.data;
     
-        console.log(e, char);
-        console.log(window.edit.selectionStart, window.edit.selectionEnd);
-    
         if (Object.keys(doublechars).indexOf(char) !== -1) {
             insertInTextArea(doublechars[char], window.edit.selectionStart);
             window.edit.selectionEnd--;
         }
-
-        window.edit.value = window.show.innertext;
     
         window.currentfile.value = window.edit.value;
         checkLines();
     }
-
-    window.show.onfocus = function (e) {
-        let showpos = getCaretPos();
-
-        window.edit.selectionEnd = showpos;
-    }
-
 
     window.form.onpaste = function (e) {
         window.currentfile.value = window.edit.value;
@@ -184,7 +171,7 @@ window.onload = function () {
     }
 
     window.form.onclick = function () {
-        window.show.focus();
+        window.edit.focus();
     }
 
     window.form.onmouseup = function (e) {
