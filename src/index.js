@@ -28,10 +28,9 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   mainWindow.loadURL(`file://${__dirname}\\index.html`);
-  mainWindow.webContents.executeJavaScript('console.log(process.argv)');
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools({mode: 'undocked'});
+  mainWindow.webContents.openDevTools({mode: 'undocked'});
 
   // Emitted when the window is closed.
   mainWindow.on('closed', () => {

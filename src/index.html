@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="height=device-height, initial-scale=1">
+    <link rel="stylesheet" href="styles/fonts/fira_code.css">
     <link rel="stylesheet" href="styles/light-theme.css" id="light-theme">
   </head>
   <body style="-webkit-app-region: drag">
@@ -17,9 +18,11 @@
           <div class="rect-btn-min" id="rect-btn" style="-webkit-app-region: no-drag"></div>
           <div id="close-btn" style="-webkit-app-region: no-drag"></div>
         </div>
-        <table id="open-files-bar" style="-webkit-app-region: no-drag">
-          <tr id="open-files-bar-table"></tr>
-        </table>
+        <div id="open-files-bar-cont" style="-webkit-app-region: no-drag">
+          <table id="open-files-bar">
+            <tr id="open-files-bar-table"></tr>
+          </table>
+        </div>
         </div>
       <div id="wrapper">
         <div id="text-field" style="-webkit-app-region: no-drag">
@@ -27,16 +30,15 @@
             <table id="column-table"></table>
           </div>
           <form id="form">
-            <textarea oninput="this.style.height=''; this.style.height=this.scrollHeight + 'px'" wrap="off" id="field" class="text input-line"></textarea>
+            <textarea oninput="this.style.height=''; this.style.height=this.scrollHeight + 'px'" wrap="off" id="hidden-field" ></textarea>
+            <div contenteditable wrap="off" id="field" class="text input-line"></div>
            <div id="bottom-cap" style="height: 100px; "></div>
           </form>
         </div>
-        <div id="task-bar"><div id="change-theme-btn">Сменить тему</div><p id="task-bar-task-name"></p></div>
+        <!-- <div id="task-bar"><div id="change-theme-btn">Сменить тему</div><p id="task-bar-task-name"></p></div>-->
       </div>
     </div>
     <script type="module" src="scripts/utils.js"></script>
-    <script type="module" src="scripts/ide/hlights.js"></script>
-    <script type="module" src="scripts/ide/chars.js"></script>
     <script type="text/javascript" src="scripts/renderer.js"></script>
     <!--<script type="text/javascript" src="scripts/handlers.js"></script>-->
   </body>

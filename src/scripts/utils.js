@@ -13,6 +13,7 @@ module.exports = {
     removeFile: removeFile,
     insertInTextArea: insertInTextArea,
     setTaskBar: setTaskBar,
+    getFile: getFile,
 };
 
 Object.defineProperty(module.exports, "__esModule", { value: true });
@@ -53,14 +54,14 @@ function checkLines() {
 }
 
 function openFile(file) {
-    try { window.win.send('SET TASK NAME', `Открываю '${file.name}'...`); } catch (e) {}
+    console.log(file);
+    if (file) { setTaskBar(`Открываю '${file.name}'...`); }
     for (let el of window.filesbar.children) {
-        if (window.isdarktheme) { el.style.color = '#ffffff'; }
-        else { el.style.color = '#000000'; }
+        el.style.color = '#ffffff';
     }
 
     if (file) {
-        let tmp = document.getElementById(file.name + ' ' + file.path); 
+        let tmp = document.getElementById(file.name + ' ' + file.path);
         
         if (tmp) {
             tmp.style.color = '#3e9eba';
@@ -81,7 +82,7 @@ function openFile(file) {
         };
     }
     else if (Object.keys(window.openfiles.dict).length === 1 && Object.keys(window.openfiles.dict).indexOf('') !== -1 ) {
-        if (window.openfiles.dict[''].value === '') { console.log(1); removeFile({ path: '', name: 'untitled' }); }
+        if (window.openfiles.dict[''].value === '') { removeFile({ path: '', name: 'untitled' }); }
     }
 
     if (file.value) {
@@ -101,12 +102,7 @@ function openFile(file) {
     if (Object.keys(window.openfiles.dict).indexOf(file.path) === -1 || Object.keys(window.openfiles.dict).length === 0 ) {
         let fileCont = document.createElement('div');
         fileCont.className = 'open-files-bar-cont';
-        if (file.name.length > 18) {
-            fileCont.innerHTML = `<p>${file.name.substr(0, 15)}...</p>`;
-        }
-        else {
-            fileCont.innerHTML = `<p>${file.name}</p>`;
-        }
+        fileCont.innerHTML = `<p>${file.name}</p>`;
         
         let cell = window.filesbar.insertCell(Object.keys(window.openfiles.dict).length-1);
         
@@ -160,6 +156,10 @@ function setTaskBar(text='Готово') {
 function removeFile(file) {
     delete window.openfiles.dict[file.path];
 
+    if (file.path) {
+        window.win.webContents.send('SAVE FILE', file);
+    }
+
     try { document.getElementById(file.name + ' ' + file.path).remove(); } catch (e) { console.log(e, file.name + ' ' + file.path, file); }
 
     if ( Object.keys(window.openfiles.dict).length === 0  ) {
@@ -168,6 +168,10 @@ function removeFile(file) {
     else {
         openFile(window.openfiles.dict[Object.keys(window.openfiles.dict)[0]]);
     }
+}
+
+function getFile(path) {
+    return window.openfiles.dict[path];
 }
 
 function saveAll() {

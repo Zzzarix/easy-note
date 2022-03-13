@@ -5,10 +5,17 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep, removeFile, insertInTextArea, setTaskBar } from '..\\src\\scripts\\utils.js';
+import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep, removeFile, getFile, insertInTextArea, setTaskBar } from '..\\src\\scripts\\utils.js';
 
 window.win = remote.getCurrentWindow(); // current electron window
 const Browserwindow = remote.BrowserWindow; // browser window constructor
+
+let doublechars = {
+    '(': ')',
+    '{': '}',
+    "'": "'",
+    '"': '"',
+};
 
 (  
     window.edit, // editable element
@@ -41,7 +48,8 @@ function preload() {
 
     document.getElementById('minus-btn').addEventListener('click', () => { window.win.minimize() });
     
-    window.edit = document.getElementById('field');
+    window.edit = document.getElementById('hidden-field');
+    window.show = document.getElementById('field');
     window.countcolumn = document.getElementById('column-table');
     window.form = document.getElementById('form');
     window.taskbar = document.getElementById('task-bar-task-name');
@@ -90,6 +98,7 @@ function preload() {
                 { label: 'Закрыть', role: 'quit' },
                 { label: 'Открыть консоль', click: () => { window.win.webContents.openDevTools({mode: 'undocked'}); } },
                 { label: 'Очистить рабочую область', click: () => { Object.keys(window.openfiles.dict).forEach((file) => { removeFile(window.openfiles.dict[file]); }); window.currentfile = null; openFile(undefined); } },
+                { label: 'Сменить тему', click: () => { changetheme(); } },
             ]);
 
             menu.popup({ window: window.win, x: 163, y: 31 });
@@ -127,6 +136,11 @@ function preload() {
         fs.writeFileSync(`${window.appdir}\\storage\\storage.json`, '{}');
         openFile(undefined);
     }
+
+    if (process.defaultApp) {
+        console.log(process);
+        console.log(process.argv);
+    }
     
     setInterval(() => { if (window.saveflag) { saveAll(); } }, 10000);
 }
@@ -139,17 +153,30 @@ window.onload = function () {
         window.curline = Math.max(Math.min(Math.ceil(x / 19), edit.children.length), 1);
         
     }
-
-    window.edit.addEventListener('DOMNodeInserted', function(e) {
-        if (e.target === 'text' && window.edit.children.length === 0) {
-            
+    
+    window.form.oninput = function (e) {
+        let char = e.data;
+    
+        console.log(e, char);
+        console.log(window.edit.selectionStart, window.edit.selectionEnd);
+    
+        if (Object.keys(doublechars).indexOf(char) !== -1) {
+            insertInTextArea(doublechars[char], window.edit.selectionStart);
+            window.edit.selectionEnd--;
         }
 
-        if (e.target === 'div') e.target.id = `input-line-edit-${window.edit.children.line}`
-    });
+        window.edit.value = window.show.innertext;
+    
+        window.currentfile.value = window.edit.value;
+        checkLines();
+    }
 
-    window.edit.addEventListener('DOMNodeRemoved', function(e) {
-    });
+    window.show.onfocus = function (e) {
+        let showpos = getCaretPos();
+
+        window.edit.selectionEnd = showpos;
+    }
+
 
     window.form.onpaste = function (e) {
         window.currentfile.value = window.edit.value;
@@ -157,7 +184,7 @@ window.onload = function () {
     }
 
     window.form.onclick = function () {
-        window.edit.focus();
+        window.show.focus();
     }
 
     window.form.onmouseup = function (e) {
@@ -183,7 +210,7 @@ window.onload = function () {
         }
     });
 
-    window.themechangebtn.onclick = function () {
+    function changetheme () {
         if (window.isdarktheme) {
             let lnk = document.createElement('link');
             lnk.rel = `stylesheet`;
@@ -228,16 +255,26 @@ window.onload = function () {
 
 // events emmiters
 
-ipcRenderer.on('SET TASK NAME', function (e, name) {
-    window.taskbar.innerHTML = name;
+ipcRenderer.on('OPEN FILE FROM PATH', (e, pth) => {
+        let fl = {
+            value: fs.readFileSync(pth, 'utf8').toString(),
+            path: pth,
+            name: path.basename(pth),
+            type: 'file',
+        };
+        openFile(fl);
+    });
+
+ipcRenderer.on('SET TASK NAME', (e, name) => {
+    // window.taskbar.innerHTML = name;
 });
 
-ipcRenderer.on('NEW FILE', function () {
+ipcRenderer.on('NEW FILE', () => {
     if (Object.keys(window.openfiles.dict).indexOf('untitled') !== -1)
     openFile(undefined);
 });
 
-ipcRenderer.on('NEW WIN', function () {
+ipcRenderer.on('NEW WIN', () => {
     let win = new Browserwindow({
         width: 800,
         height: 600,
@@ -250,7 +287,7 @@ ipcRenderer.on('NEW WIN', function () {
     });
     win.loadURL(`file://${__dirname}\\index.html`);
 });
-ipcRenderer.on('OPEN FILE', function () {
+ipcRenderer.on('OPEN FILE', () => {
     let result = dialog.showOpenDialogSync({
         title: 'Открыть файл',
         buttonLabel: 'Открыть',
@@ -262,21 +299,15 @@ ipcRenderer.on('OPEN FILE', function () {
         ]
     });
     if (result != undefined) {
-        result.forEach((pth) => {
-            let fl = {
-                value: fs.readFileSync(pth, 'utf8').toString(),
-                path: pth,
-                name: path.basename(pth),
-                type: 'file',
-            };
-            openFile(fl);
+        result.forEach((path) => {
+            window.win.webContents.send('OPEN FILE FROM PATH', path);
         });
     }
 });
 
-ipcRenderer.on('SAVE FILE', function (e, file) {
+ipcRenderer.on('SAVE FILE', (e, file) => {
     if (file && file.path) {
-        fs.writeFileSync(file.path, window.edit.value, 'utf8');
+        fs.writeFileSync(file.path, file.value, 'utf8');
     }
     else if (window.currentfile.path && !file) {
         fs.writeFileSync(window.currentfile.path, window.edit.value, 'utf8');
@@ -286,7 +317,7 @@ ipcRenderer.on('SAVE FILE', function (e, file) {
     }
 });
 
-ipcRenderer.on('SAVE FILE AS', function () {
+ipcRenderer.on('SAVE FILE AS', () => {
     let result = dialog.showSaveDialogSync({
         title: 'Сохранить как',
         buttonLabel: 'Сохранить',
