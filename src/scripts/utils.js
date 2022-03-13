@@ -14,12 +14,55 @@ module.exports = {
     insertInTextArea: insertInTextArea,
     setTaskBar: setTaskBar,
     getFile: getFile,
+    changetheme: changetheme,
 };
 
 Object.defineProperty(module.exports, "__esModule", { value: true });
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function changetheme () {
+    if (window.isdarktheme) {
+        let lnk = document.createElement('link');
+        lnk.rel = `stylesheet`;
+        lnk.href = 'styles/light-theme.css';
+        lnk.id = 'light-theme';
+        
+        document.head.appendChild(lnk);
+        document.getElementById('dark-theme').remove();
+
+        for (let el of window.filesbar.children) {
+            el.style.color = '#000000';
+        }
+
+        let tmp = document.getElementById(window.currentfile.name + ' ' + window.currentfile.path); 
+    
+        if (tmp) {
+            tmp.style.color = '#3e9eba';
+        }
+    }
+    else {
+        let lnk = document.createElement('link');
+        lnk.rel = `stylesheet`;
+        lnk.href = 'styles/dark-theme.css';
+        lnk.id = 'dark-theme';
+        
+        document.head.appendChild(lnk);
+        document.getElementById('light-theme').remove();
+
+        for (let el of window.filesbar.children) {
+            el.style.color = '#ffffff';
+        }
+
+        let tmp = document.getElementById(window.currentfile.name + ' ' + window.currentfile.path); 
+    
+        if (tmp) {
+            tmp.style.color = '#3e9eba';
+        }
+    }
+    window.isdarktheme = !window.isdarktheme //window.themechangebtn
 }
 
 function getLines() {

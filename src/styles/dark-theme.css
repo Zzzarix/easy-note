@@ -9,8 +9,7 @@ body {
 
     scroll-behavior: smooth;
 
-    background-color: #262335;
-    color: #ffffff;
+    background-color: #ffffff;
 
     display: flex;
 
@@ -39,7 +38,7 @@ p {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #3A3A3A;
+    background: #C1C1C1;
 }
 
 #top-wrapper {
@@ -53,7 +52,7 @@ p {
     position: fixed;
 
     z-index: 0;
-    top: 70px;
+    top: 66px;
 
     padding-bottom: 400px;
 }
@@ -78,14 +77,9 @@ p {
     font-size: 14px;
 }
 
-#top-bar-cap {
-    min-height: 70px;
-    width: 100%;
-}
-
 .title-menu-item {
     background-color: #ffffff;
-    color: #7a7a7a;
+    color: #505050;
 
     text-align: center;
     padding-top: 6px;
@@ -132,6 +126,10 @@ p {
     border: 0;
 }
 
+/*.open-files-bar-wrapper {
+
+}*/
+
 .open-files-bar-cont {
     text-align: center;
     max-width: 250px;
@@ -141,6 +139,14 @@ p {
     padding-bottom: 7px;
 
     height: 100%;
+}
+
+.open-files-bar-cont-closer {
+    height: 9.92px;
+    width: 10px;
+    background-image: url("imgs/file-closer.png");
+
+    margin-top: 5px;
 }
 
 .open-files-bar-cont:hover{
@@ -199,24 +205,23 @@ p {
 }
 
 #text-field {
+    overflow: hidden;
+
     width: 100%;
     height: calc(100% - 60px);
     display: flex;
-    background-color: #262335;
+    background-color: #3D3D3D;
 
     white-space: nowrap;
 
-    overflow-x: scroll;
-
     overflow-y: scroll;
-
-    
+    overflow-x: scroll;
 }
 
 #form {
     width: 100%;
     height: 100%;
-    background-color: #262335;
+    background-color: #3D3D3D;
 }
 
 ::selection {
@@ -224,16 +229,15 @@ p {
 }
 
 #field {
-    width: 100%;
-    height: 100%;
+    width: 150%;
+    height: 110%;
 
     resize: none;
     border: 0;
     outline: none;
-    background-color: #262335;
-    color: #bbbbbb;
-    overflow-y: hidden;
-    overflow-x: scroll;
+    background-color: #3D3D3D;
+    color: #272727;
+    overflow: hidden;
 
     caret-color: #3e9eba;
 
@@ -242,6 +246,11 @@ p {
     font-size: 17px;
 
     font-family: "Fira Code";
+
+    z-index: 1000;
+
+    padding: 0;
+    padding-left: 5px;
 }
 
 #column-table {
@@ -253,8 +262,12 @@ p {
 
     padding-right: 15px;
     padding-left: 5px;
-    
+
     font-size: 17px;
+
+    position: absolute;
+
+    background-color: #3D3D3D;
 }
 
 .column-item {
@@ -265,151 +278,4 @@ p {
 #column {
     width: 55px;
     height: 100%;
-    background-color: #262335;
-}
-
-/*#slide-trigger {
-    height: 100%;
-    width: 0;
-
-    display: block;
-
-    z-index: 50;
-    
-    position: absolute;
-}
-
-#slider {
-    background-image: url("imgs/slide-arrow.png");
-    width: 15px;
-    height: 30px;
-    transition: all 0.3s linear;
-    left: -16px;
-    z-index: 50;
-    position: fixed;
-}*/
-
-
-/*#side-menu {
-    width: 400px !important;
-    height: 100%;
-    background-color: #f3f3f3;
-
-    overflow-y: auto;
-    white-space: nowrap;
-    overflow-x: hidden;
-
-    font-size: 14px;
-}
-
-#side-nav {
-    background-color: #2b2b2b;
-    min-width: 70px !important;
-    height: 100%;
-}
-
-#menu-resize {
-    width: 5px;
-    height: 100%;
-
-    position: relative;
-
-    z-index: 50;
-    background-color: transparent;
-
-    float: right;
-}
-
-#menu-resize:hover {
-    cursor: e-resize;
-}
-
-#menu-name {
-    height: 30px;
-    width: auto;
-    background-color: #f3f3f3;
-}
-
-.fixed-content {
-    position: fixed;
-} */
-
-.file-tree {
-    height: 100%;
-    width: 100%;
-
-    padding: 0px;
-    margin: 0;
-
-    overflow-y: hidden;
-}
-
-.file-tree-el-up-cont:hover{
-    background-color: #DCDCDC;
-}
-
-.file-tree-el-up-cont{
-    padding-left: 20px;
-}
-
-.file-tree-el-bot-cont{
-    padding-left: 20px;
-}
-
-.file-tree-el-cont {
-    width: 100%;
-}
-
-li {
-    color: #4F4F4F;
-    /*list-style-image: url("imgs/list-point.png");*/
-    margin: 4px 0;
-}
-
-.dir-point-close::before {
-    content: url("imgs/list-dir-point-1.png");
-    margin: auto;
-}
-
-.dir-point-open::before {
-    content: url("imgs/list-dir-point-2.png");
-    margin: auto;
-}
-
-.file-point::before {
-    content: url("imgs/list-point.png");
-    margin: auto;
-}
-
-#task-bar {
-    width: 100%;
-    height: 20px;
-
-    display: flex;
-
-    position: fixed;
-    bottom: 0px;
-
-    background-color: #3A3A3A;
-}
-
-#task-bar-task-name {
-    position: absolute;
-    right: 5px;
-
-    font-size: 16px;
-
-    color: #E4E4E4;
-
-    height: 100%;
-    width: auto;
-}
-
-#change-theme-btn {
-    font-size: 16px;
-
-    color: #E4E4E4;
-
-    height: 100%;
-    width: auto;
 }

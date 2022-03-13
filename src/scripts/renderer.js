@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep, removeFile, getFile, insertInTextArea, setTaskBar } from '..\\src\\scripts\\utils.js';
+import { newLine, checkLines, openFile, saveAll, getCaretPos, sleep, removeFile, changetheme, getFile, insertInTextArea, setTaskBar } from '..\\src\\scripts\\utils.js';
 
 window.win = remote.getCurrentWindow(); // current electron window
 const Browserwindow = remote.BrowserWindow; // browser window constructor
@@ -195,49 +195,7 @@ window.onload = function () {
             e.target.id = `input-line-${window.divcount}`;
             window.divcount++;
         }
-    });
-
-    function changetheme () {
-        if (window.isdarktheme) {
-            let lnk = document.createElement('link');
-            lnk.rel = `stylesheet`;
-            lnk.href = 'styles/light-theme.css';
-            lnk.id = 'light-theme';
-            
-            document.head.appendChild(lnk);
-            document.getElementById('dark-theme').remove();
-
-            for (let el of window.filesbar.children) {
-                el.style.color = '#000000';
-            }
-
-            let tmp = document.getElementById(window.currentfile.name + ' ' + window.currentfile.path); 
-        
-            if (tmp) {
-                tmp.style.color = '#3e9eba';
-            }
-        }
-        else {
-            let lnk = document.createElement('link');
-            lnk.rel = `stylesheet`;
-            lnk.href = 'styles/dark-theme.css';
-            lnk.id = 'dark-theme';
-            
-            document.head.appendChild(lnk);
-            document.getElementById('light-theme').remove();
-
-            for (let el of window.filesbar.children) {
-                el.style.color = '#ffffff';
-            }
-
-            let tmp = document.getElementById(window.currentfile.name + ' ' + window.currentfile.path); 
-        
-            if (tmp) {
-                tmp.style.color = '#3e9eba';
-            }
-        }
-        window.isdarktheme = !window.isdarktheme //window.themechangebtn
-    }
+    }); 
 }
 
 // events emmiters
